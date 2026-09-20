@@ -3,10 +3,10 @@ package src
 import (
 	"context"
 	"os"
+
 	"github.com/bra1nles5/terraform-provider-jira-dc/src/dataSources"
 	"github.com/bra1nles5/terraform-provider-jira-dc/src/jiraClient"
 	"github.com/bra1nles5/terraform-provider-jira-dc/src/resources"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	providerschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"

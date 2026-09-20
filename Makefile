@@ -6,11 +6,12 @@ GOARCH?=$(shell go env GOARCH)
 #PLUGIN_PATH=~/.terraform.d/plugins/$(PLUGIN_NAMESPACE)/$(PLUGIN_NAME)/$(PLUGIN_VERSION)/$(GOOS)_$(GOARCH)
 PLUGIN_PATH=$(HOME)/.terraform.d/plugins/registry.terraform.io/$(PLUGIN_NAMESPACE)/$(PLUGIN_NAME)/$(PLUGIN_VERSION)/$(GOOS)_$(GOARCH)
 BINARY_NAME=terraform-provider-$(PLUGIN_NAME)_v$(PLUGIN_VERSION)
+TFPLUGINDOCS_VERSION=v0.25.0
 
 ## Developer-local targets, if present (not part of the repository)
 -include local.mk
 
-.PHONY: all build install clean test unit fmt lint
+.PHONY: all build install clean test unit fmt lint docs
 
 all: build install
 run: clean build install test
@@ -44,6 +45,12 @@ lint:
 unit:
 	@echo "🧪 Running unit tests..."
 	go test ./...
+
+## Generate Registry documentation from the provider schema
+docs:
+	@echo "📚 Generating docs..."
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@$(TFPLUGINDOCS_VERSION) generate \
+		--provider-name jira --rendered-provider-name "Jira Data Center"
 
 ## Local testing through Terraform
 test: install

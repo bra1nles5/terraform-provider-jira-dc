@@ -4,8 +4,8 @@ import (
 	"context"
 	"flag"
 	"log"
-	"github.com/bra1nles5/terraform-provider-jira-dc/src"
 
+	"github.com/bra1nles5/terraform-provider-jira-dc/src"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
