@@ -3,12 +3,12 @@
 page_title: "jira_priority_types_schema Data Source - Jira Data Center"
 subcategory: ""
 description: |-
-  Looks up a Jira priority scheme by name.
+  Looks up a Jira priority scheme by name, so a project can refer to it without hardcoding its ID.
 ---
 
 # jira_priority_types_schema (Data Source)
 
-Looks up a Jira priority scheme by name.
+Looks up a Jira priority scheme by name, so a project can refer to it without hardcoding its ID.
 
 
 
@@ -17,14 +17,14 @@ Looks up a Jira priority scheme by name.
 
 ### Required
 
-- `name` (String) Schemas name.
+- `name` (String) Exact scheme name to look up, for example `Default Priority Scheme`.
 
 ### Optional
 
-- `description` (String) Issue Priority Schema Description.
+- `description` (String) Scheme description as stored in Jira.
 
 ### Read-Only
 
-- `id` (Number) Uniq id.
-- `options_ids` (List of String) Options Ids.
-- `self` (String) Issue Priority Schema link.
+- `id` (Number) Scheme ID.
+- `options_ids` (List of String) IDs of the priorities the scheme includes.
+- `self` (String) Canonical API URL of the scheme.

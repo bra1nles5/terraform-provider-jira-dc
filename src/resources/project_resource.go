@@ -63,36 +63,63 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 
 func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Manages a Jira Data Center project together with the schemes it is built from: " +
+			"issue types, workflow, priorities and permissions.",
 		Attributes: map[string]schema.Attribute{
 			"key": schema.StringAttribute{
 				Required: true,
+				Description: "Project key, unique across the Jira instance, for example `EX`. " +
+					"Jira does not allow changing it, so a new value replaces the project.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"name":        schema.StringAttribute{Required: true},
-			"description": schema.StringAttribute{Optional: true},
+			"name": schema.StringAttribute{
+				Required:    true,
+				Description: "Project display name.",
+			},
+			"description": schema.StringAttribute{
+				Optional:    true,
+				Description: "Project description. Left unset it stays empty in Jira.",
+			},
 			"type": schema.StringAttribute{
-				Required: true,
+				Required:    true,
+				Description: "Project type: `software`, `business` or `service_desk`.",
 				Validators: []validator.String{
 					stringvalidator.OneOf("software", "business", "service_desk"),
 				},
 			},
-			"lead": schema.StringAttribute{Required: true},
+			"lead": schema.StringAttribute{
+				Required:    true,
+				Description: "Username of the project lead.",
+			},
 			"archived": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				Description: "Whether the project is archived. Jira ignores this field on create and update, " +
+					"so it is applied with a separate archive or restore call afterwards.",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"issue_type_schema_id": schema.StringAttribute{Required: true},
-			"workflow_schema_id":   schema.Int32Attribute{Required: true},
+			"issue_type_schema_id": schema.StringAttribute{
+				Required: true,
+				Description: "ID of the issue type scheme to associate with the project. " +
+					"It is a string because that is how Jira reports it for this scheme.",
+			},
+			"workflow_schema_id": schema.Int32Attribute{
+				Required: true,
+				Description: "ID of the workflow scheme to associate with the project. Assigning it goes " +
+					"through the `assignWorkflowScheme` ScriptRunner endpoint; on a project that already " +
+					"has issues Jira migrates them, which may take a while.",
+			},
 			// Optional rather than Required: an archived project does not expose these
 			// two, so a configuration describing one has nothing to put here.
 			"priority_schema_id": schema.Int32Attribute{
 				Optional: true,
 				Computed: true,
+				Description: "ID of the priority scheme. Optional because an archived project refuses to " +
+					"report it: in that case the value is null rather than a guess.",
 				PlanModifiers: []planmodifier.Int32{
 					int32planmodifier.UseStateForUnknown(),
 				},
@@ -100,6 +127,9 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"permission_schema_id": schema.Int32Attribute{
 				Optional: true,
 				Computed: true,
+				Description: "ID of the permission scheme. Sent already when the project is created: " +
+					"without it not even an administrator can see the new project. An archived project " +
+					"does not report it, and the value is then null.",
 				PlanModifiers: []planmodifier.Int32{
 					int32planmodifier.UseStateForUnknown(),
 				},

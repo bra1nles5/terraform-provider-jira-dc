@@ -3,12 +3,12 @@
 page_title: "jira_workflow_schema Data Source - Jira Data Center"
 subcategory: ""
 description: |-
-  Looks up a Jira workflow scheme by name or by ID.
+  Looks up a Jira workflow scheme by ID or by name. The name form needs the listWorkflowSchemes ScriptRunner endpoint, because REST API v2 of Jira Data Center lists no workflow schemes.
 ---
 
 # jira_workflow_schema (Data Source)
 
-Looks up a Jira workflow scheme by name or by ID.
+Looks up a Jira workflow scheme by ID or by name. The name form needs the `listWorkflowSchemes` ScriptRunner endpoint, because REST API v2 of Jira Data Center lists no workflow schemes.
 
 
 
@@ -17,10 +17,10 @@ Looks up a Jira workflow scheme by name or by ID.
 
 ### Optional
 
-- `description` (String) Issue Priority Schema Description.
-- `id` (Number) Uniq id. Set either this or name.
-- `name` (String) Schemas name. Set either this or id.
+- `description` (String) Scheme description as stored in Jira.
+- `id` (Number) Scheme ID. Set either this or `name`. This form works against plain REST API v2.
+- `name` (String) Exact scheme name. Set either this or `id`. Requires the `listWorkflowSchemes` ScriptRunner endpoint.
 
 ### Read-Only
 
-- `self` (String) Issue Priority Schema link.
+- `self` (String) Canonical API URL of the scheme.

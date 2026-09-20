@@ -3,12 +3,12 @@
 page_title: "jira_project Resource - Jira Data Center"
 subcategory: ""
 description: |-
-  
+  Manages a Jira Data Center project together with the schemes it is built from: issue types, workflow, priorities and permissions.
 ---
 
 # jira_project (Resource)
 
-
+Manages a Jira Data Center project together with the schemes it is built from: issue types, workflow, priorities and permissions.
 
 
 
@@ -17,16 +17,16 @@ description: |-
 
 ### Required
 
-- `issue_type_schema_id` (String)
-- `key` (String)
-- `lead` (String)
-- `name` (String)
-- `type` (String)
-- `workflow_schema_id` (Number)
+- `issue_type_schema_id` (String) ID of the issue type scheme to associate with the project. It is a string because that is how Jira reports it for this scheme.
+- `key` (String) Project key, unique across the Jira instance, for example `EX`. Jira does not allow changing it, so a new value replaces the project.
+- `lead` (String) Username of the project lead.
+- `name` (String) Project display name.
+- `type` (String) Project type: `software`, `business` or `service_desk`.
+- `workflow_schema_id` (Number) ID of the workflow scheme to associate with the project. Assigning it goes through the `assignWorkflowScheme` ScriptRunner endpoint; on a project that already has issues Jira migrates them, which may take a while.
 
 ### Optional
 
-- `archived` (Boolean)
-- `description` (String)
-- `permission_schema_id` (Number)
-- `priority_schema_id` (Number)
+- `archived` (Boolean) Whether the project is archived. Jira ignores this field on create and update, so it is applied with a separate archive or restore call afterwards.
+- `description` (String) Project description. Left unset it stays empty in Jira.
+- `permission_schema_id` (Number) ID of the permission scheme. Sent already when the project is created: without it not even an administrator can see the new project. An archived project does not report it, and the value is then null.
+- `priority_schema_id` (Number) ID of the priority scheme. Optional because an archived project refuses to report it: in that case the value is null rather than a guess.

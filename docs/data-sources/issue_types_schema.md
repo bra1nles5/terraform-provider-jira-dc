@@ -3,12 +3,12 @@
 page_title: "jira_issue_types_schema Data Source - Jira Data Center"
 subcategory: ""
 description: |-
-  Looks up a Jira issue type scheme by name.
+  Looks up a Jira issue type scheme by name, so a project can refer to it without hardcoding its ID.
 ---
 
 # jira_issue_types_schema (Data Source)
 
-Looks up a Jira issue type scheme by name.
+Looks up a Jira issue type scheme by name, so a project can refer to it without hardcoding its ID.
 
 
 
@@ -17,13 +17,13 @@ Looks up a Jira issue type scheme by name.
 
 ### Required
 
-- `name` (String) Schemas name.
+- `name` (String) Exact scheme name to look up, for example `Default Issue Type Scheme`.
 
 ### Optional
 
-- `description` (String) Issue Type Schema Description.
+- `description` (String) Scheme description as stored in Jira.
 
 ### Read-Only
 
-- `id` (String) Uniq id.
-- `self` (String) Issue Type Schema link.
+- `id` (String) Scheme ID, reported by Jira as a string for this scheme type.
+- `self` (String) Canonical API URL of the scheme.

@@ -34,12 +34,12 @@ func (d *IssueWorkflowSchemaDataSource) Metadata(_ context.Context, _ datasource
 
 func (d *IssueWorkflowSchemaDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Looks up a Jira workflow scheme by name or by ID.",
+		Description: "Looks up a Jira workflow scheme by ID or by name. The name form needs the `listWorkflowSchemes` ScriptRunner endpoint, because REST API v2 of Jira Data Center lists no workflow schemes.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int32Attribute{
 				Optional:    true,
 				Computed:    true,
-				Description: "Uniq id. Set either this or name.",
+				Description: "Scheme ID. Set either this or `name`. This form works against plain REST API v2.",
 				Validators: []validator.Int32{
 					int32validator.ExactlyOneOf(path.MatchRoot("id"), path.MatchRoot("name")),
 				},
@@ -47,15 +47,15 @@ func (d *IssueWorkflowSchemaDataSource) Schema(_ context.Context, _ datasource.S
 			"name": schema.StringAttribute{
 				Optional:    true,
 				Computed:    true,
-				Description: "Schemas name. Set either this or id.",
+				Description: "Exact scheme name. Set either this or `id`. Requires the `listWorkflowSchemes` ScriptRunner endpoint.",
 			},
 			"description": schema.StringAttribute{
 				Optional:    true,
-				Description: "Issue Priority Schema Description.",
+				Description: "Scheme description as stored in Jira.",
 			},
 			"self": schema.StringAttribute{
 				Computed:    true,
-				Description: "Issue Priority Schema link.",
+				Description: "Canonical API URL of the scheme.",
 			},
 		},
 	}

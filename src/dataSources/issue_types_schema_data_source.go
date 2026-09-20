@@ -31,23 +31,23 @@ func (d *IssueTypesSchemaDataSource) Metadata(_ context.Context, _ datasource.Me
 
 func (d *IssueTypesSchemaDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Looks up a Jira issue type scheme by name.",
+		Description: "Looks up a Jira issue type scheme by name, so a project can refer to it without hardcoding its ID.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
-				Description: "Uniq id.",
+				Description: "Scheme ID, reported by Jira as a string for this scheme type.",
 			},
 			"name": schema.StringAttribute{
 				Required:    true,
-				Description: "Schemas name.",
+				Description: "Exact scheme name to look up, for example `Default Issue Type Scheme`.",
 			},
 			"description": schema.StringAttribute{
 				Optional:    true,
-				Description: "Issue Type Schema Description.",
+				Description: "Scheme description as stored in Jira.",
 			},
 			"self": schema.StringAttribute{
 				Computed:    true,
-				Description: "Issue Type Schema link.",
+				Description: "Canonical API URL of the scheme.",
 			},
 		},
 	}

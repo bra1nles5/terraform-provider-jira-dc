@@ -3,12 +3,12 @@
 page_title: "jira_permission_schema Data Source - Jira Data Center"
 subcategory: ""
 description: |-
-  Looks up a Jira permission scheme by name.
+  Looks up a Jira permission scheme by name, so a project can refer to it without hardcoding its ID.
 ---
 
 # jira_permission_schema (Data Source)
 
-Looks up a Jira permission scheme by name.
+Looks up a Jira permission scheme by name, so a project can refer to it without hardcoding its ID.
 
 
 
@@ -17,13 +17,13 @@ Looks up a Jira permission scheme by name.
 
 ### Required
 
-- `name` (String) Schemas name.
+- `name` (String) Exact scheme name to look up, for example `Default Permission Scheme`.
 
 ### Optional
 
-- `description` (String) Permission Schema Description.
+- `description` (String) Scheme description as stored in Jira.
 
 ### Read-Only
 
-- `id` (Number) Uniq id.
-- `self` (String) Permission Schema link.
+- `id` (Number) Scheme ID.
+- `self` (String) Canonical API URL of the scheme.
