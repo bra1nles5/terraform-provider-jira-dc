@@ -12,6 +12,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   Jira Data Center answers with 405. Setting `archived = false` on an archived
   project used to fail.
 
+### Changed
+
+- The workflow scheme of a project is read through REST API v2
+  (`GET /rest/api/2/project/{key}/workflowscheme`). The `getWorkflowScheme`
+  ScriptRunner endpoint is no longer needed and has been removed; three
+  endpoints remain.
+- Schemes are verified before a project created with `archived = true` is
+  archived, and an unreadable workflow scheme of an archived project keeps its
+  value in state instead of failing the refresh.
+
 ## v0.1.2
 
 ### Fixed

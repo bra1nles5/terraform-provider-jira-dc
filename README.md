@@ -181,12 +181,12 @@ Some operations are not available in Jira DC REST API v2 and are implemented via
 2. Go to **Jira Administration (⚙) → Manage apps → ScriptRunner → REST Endpoints**.
 3. Click **Add new endpoint**.
 4. Paste the full contents of the Groovy script into the script editor.
-5. Save. Repeat for each of the four scripts below.
+5. Save. Repeat for each of the three scripts below.
 
 You can verify each endpoint is working by hitting its URL with curl:
 
 ```bash
-curl -u admin:token "https://jira.example.com/rest/scriptrunner/latest/custom/getWorkflowScheme?projectKey=EX"
+curl -u admin:token "https://jira.example.com/rest/scriptrunner/latest/custom/listWorkflowSchemes"
 ```
 
 ### Endpoint reference
@@ -210,23 +210,6 @@ Required by `data "jira_workflow_schema"` when it looks a scheme up by `name`: R
     { "self": "https://jira.example.com/rest/api/2/workflowscheme/10001", "id": 10001, "name": "My Workflow Scheme", "description": "" }
   ]
 }
-```
-
----
-
-#### `getWorkflowScheme.groovy`
-
-| Property | Value |
-|----------|-------|
-| File | `jira-endpoints/getWorkflowScheme.groovy` |
-| Method | `GET` |
-| Path | `/rest/scriptrunner/latest/custom/getWorkflowScheme` |
-| Required groups | `jira-administrators` |
-| Query param | `projectKey` (string) |
-
-**Response:**
-```json
-{ "success": true, "projectKey": "EX", "schemeId": 10001, "schemeName": "My Workflow Scheme" }
 ```
 
 ---

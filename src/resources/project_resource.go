@@ -199,17 +199,18 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	// Schemes are checked before archiving: an archived project may hide them.
+	if err := r.reconcileSchemas(ctx, plan); err != nil {
+		resp.Diagnostics.AddError("Schemas did not survive project creation", err.Error())
+		return
+	}
+
 	if plan.Archived.ValueBool() {
 		if err := r.projectService.Archive(ctx, prj.Key); err != nil {
 			resp.Diagnostics.AddError("Error archiving project after create", err.Error())
 			return
 		}
 		tflog.Debug(ctx, "project archived after create", map[string]any{"key": prj.Key})
-	}
-
-	if err := r.reconcileSchemas(ctx, plan); err != nil {
-		resp.Diagnostics.AddError("Schemas did not survive project creation", err.Error())
-		return
 	}
 
 	canonical, err := r.projectService.Get(ctx, prj.Key)
@@ -283,11 +284,15 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	state.IssueTypeSchemaId = types.StringValue(issueTypeID)
 
 	workflowID, err := r.projectService.GetWorkflowSchema(ctx, key)
-	if err != nil {
+	switch {
+	case err == nil:
+		state.WorkflowSchemaId = types.Int32Value(workflowID)
+	case jira.IsForbidden(err):
+		tflog.Warn(ctx, "workflow schema not readable, keeping state", map[string]any{"key": key})
+	default:
 		resp.Diagnostics.AddError("Error reading workflow schema", err.Error())
 		return
 	}
-	state.WorkflowSchemaId = types.Int32Value(workflowID)
 
 	// Jira answers 403 for the priority and permission schemes of an archived project
 	// ("You cannot view this project"). That is not a failure: the schemes stay as
