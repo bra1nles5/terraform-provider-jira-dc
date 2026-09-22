@@ -3,6 +3,15 @@
 All notable changes to this provider are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- `jira_project` can be restored from the archive: restore now calls
+  `PUT /rest/api/2/project/{key}/restore` instead of `DELETE .../archive`, which
+  Jira Data Center answers with 405. Setting `archived = false` on an archived
+  project used to fail.
+
 ## v0.1.2
 
 ### Fixed
