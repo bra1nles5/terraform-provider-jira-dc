@@ -104,7 +104,5 @@ func (s *ProjectService) Remove(ctx context.Context, project *Project) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
-	return nil
+	return expectSuccess(resp, "removing project")
 }

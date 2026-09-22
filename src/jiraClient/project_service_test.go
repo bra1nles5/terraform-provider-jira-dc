@@ -129,3 +129,34 @@ func TestProjectService_Remove(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// A refused DELETE must not look like success: Terraform would drop the project
+// from state while it stays in Jira.
+func TestProjectService_Remove_ErrorStatus(t *testing.T) {
+	for _, status := range []int{http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(status)
+			w.Write([]byte(`{"errorMessages":["nope"]}`))
+		}))
+
+		client := NewJiraClient(server.URL+"/", "user", "token")
+		err := client.Projects.Remove(context.Background(), &Project{Key: "TEST"})
+		if err == nil {
+			t.Errorf("status %d: expected an error, got nil", status)
+		}
+		server.Close()
+	}
+}
+
+func TestProjectService_Remove_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := NewJiraClient(server.URL+"/", "user", "token")
+	err := client.Projects.Remove(context.Background(), &Project{Key: "TEST"})
+	if !IsNotFound(err) {
+		t.Errorf("expected NotFoundError, got %T: %v", err, err)
+	}
+}

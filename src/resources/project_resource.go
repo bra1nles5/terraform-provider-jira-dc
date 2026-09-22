@@ -340,6 +340,15 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, "starting project update", map[string]any{"key": prj.Key})
 
+	// An archived project refuses changes, so restoring comes first and archiving last.
+	if diff.ArchivedChanged() && !plan.Archived.ValueBool() {
+		if err := r.projectService.Restore(ctx, prj.Key); err != nil {
+			resp.Diagnostics.AddError("Error restoring project", err.Error())
+			return
+		}
+		tflog.Debug(ctx, "project restored", map[string]any{"key": prj.Key})
+	}
+
 	if diff.BaseChanged() {
 		if err := r.projectService.Update(ctx, &prj); err != nil {
 			resp.Diagnostics.AddError("Error updating project", err.Error())
@@ -388,20 +397,12 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		tflog.Debug(ctx, "project workflow schema updated", map[string]any{"key": prj.Key})
 	}
 
-	if diff.ArchivedChanged() {
-		if plan.Archived.ValueBool() {
-			if err := r.projectService.Archive(ctx, prj.Key); err != nil {
-				resp.Diagnostics.AddError("Error archiving project", err.Error())
-				return
-			}
-			tflog.Debug(ctx, "project archived", map[string]any{"key": prj.Key})
-		} else {
-			if err := r.projectService.Restore(ctx, prj.Key); err != nil {
-				resp.Diagnostics.AddError("Error restoring project", err.Error())
-				return
-			}
-			tflog.Debug(ctx, "project restored", map[string]any{"key": prj.Key})
+	if diff.ArchivedChanged() && plan.Archived.ValueBool() {
+		if err := r.projectService.Archive(ctx, prj.Key); err != nil {
+			resp.Diagnostics.AddError("Error archiving project", err.Error())
+			return
 		}
+		tflog.Debug(ctx, "project archived", map[string]any{"key": prj.Key})
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -427,6 +428,10 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	err := r.projectService.Remove(ctx, &prj)
+	if jira.IsNotFound(err) {
+		tflog.Warn(ctx, "project already gone, nothing to delete", map[string]any{"key": prj.Key})
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Error removing project", err.Error())
 		return
