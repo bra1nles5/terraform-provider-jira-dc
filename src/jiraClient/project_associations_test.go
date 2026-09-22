@@ -36,15 +36,13 @@ func TestProjectService_GetIssueTypeSchema(t *testing.T) {
 
 func TestProjectService_GetWorkflowSchema(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/rest/scriptrunner/latest/custom/getWorkflowScheme" {
+		if r.URL.Path != "/rest/api/2/project/TEST/workflowscheme" {
 			t.Fatalf("unexpected URL path: %s", r.URL.Path)
-		}
-		if r.URL.Query().Get("projectKey") != "TEST" {
-			t.Fatalf("unexpected projectKey: %s", r.URL.Query().Get("projectKey"))
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"schemeId": int32(20200),
+			"id":   int32(20200),
+			"name": "My Workflow Scheme",
 		})
 	}))
 	defer server.Close()

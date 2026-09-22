@@ -68,22 +68,26 @@ func (s *ProjectService) GetWorkflowSchema(ctx context.Context, projectKey strin
 	resp, err := s.Client.doRequest(
 		ctx,
 		"GET",
-		fmt.Sprintf("rest/scriptrunner/latest/custom/getWorkflowScheme?projectKey=%s", url.QueryEscape(projectKey)),
+		fmt.Sprintf("rest/api/2/project/%s/workflowscheme", url.PathEscape(projectKey)),
 		nil,
 	)
 	if err != nil {
 		return 0, err
 	}
 
+	if err := forbidden(resp); err != nil {
+		return 0, err
+	}
+
 	var data struct {
-		SchemeId int32 `json:"schemeId"`
+		ID int32 `json:"id"`
 	}
 
 	if err := s.Client.decodeJSON(resp, &data); err != nil {
 		return 0, err
 	}
 
-	return data.SchemeId, nil
+	return data.ID, nil
 }
 
 func (s *ProjectService) GetPrioritySchema(ctx context.Context, projectKey string) (int32, error) {
