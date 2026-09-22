@@ -27,7 +27,7 @@ terraform {
   required_providers {
     jira = {
       source  = "bra1nles5/jira-dc"
-      version = "0.1.0"
+      version = "0.1.1"
     }
   }
 }
@@ -161,7 +161,7 @@ make clean
 
 The binary is installed to:
 ```
-~/.terraform.d/plugins/registry.terraform.io/bra1nles5/jira-dc/0.1.0/<OS>_<ARCH>/
+~/.terraform.d/plugins/registry.terraform.io/bra1nles5/jira-dc/0.1.1/<OS>_<ARCH>/
 ```
 
 ---

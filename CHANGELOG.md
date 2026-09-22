@@ -3,7 +3,7 @@
 All notable changes to this provider are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## v0.1.1
 
 ### Fixed
 
