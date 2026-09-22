@@ -219,7 +219,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	plan.Key = types.StringValue(canonical.Key)
 	plan.Name = types.StringValue(canonical.Name)
-	plan.Lead = types.StringValue(canonical.Lead)
+	plan.Lead = keepLeadCase(plan.Lead, canonical.Lead)
 	plan.Type = types.StringValue(canonical.Type)
 	plan.Archived = types.BoolValue(canonical.Archived)
 	if canonical.Description == "" {
@@ -266,7 +266,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	state.Key = types.StringValue(prj.Key)
 	state.Name = types.StringValue(prj.Name)
-	state.Lead = types.StringValue(prj.Lead)
+	state.Lead = keepLeadCase(state.Lead, prj.Lead)
 	state.Type = types.StringValue(prj.Type)
 	state.Archived = types.BoolValue(prj.Archived)
 	if prj.Description == "" {

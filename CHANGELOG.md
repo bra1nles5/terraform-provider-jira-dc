@@ -3,6 +3,15 @@
 All notable changes to this provider are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- `jira_project` no longer fails with "Provider produced inconsistent result after
+  apply" when `lead` differs from Jira's spelling only in case. Jira Data Center user
+  names are case-insensitive: the configured spelling is kept, and plans no longer
+  show a change to `lead` after every refresh.
+
 ## v0.1.1
 
 ### Fixed

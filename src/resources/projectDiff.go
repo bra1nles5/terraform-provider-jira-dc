@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -26,6 +27,17 @@ func resolveSchemaID(ctx context.Context, planned types.Int32, read func() (int3
 		return types.Int32Null()
 	}
 	return types.Int32Value(id)
+}
+
+// keepLeadCase keeps the lead as written in the configuration when Jira reports the
+// same user in another case. Jira Data Center user names are case-insensitive and Jira
+// answers with its own spelling; storing that breaks apply with "inconsistent result"
+// and makes every plan show a change to lead.
+func keepLeadCase(known types.String, fromJira string) types.String {
+	if !known.IsNull() && !known.IsUnknown() && strings.EqualFold(known.ValueString(), fromJira) {
+		return known
+	}
+	return types.StringValue(fromJira)
 }
 
 type projectDiff struct {
