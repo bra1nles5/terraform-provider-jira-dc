@@ -208,7 +208,7 @@ func (s *ProjectService) Archive(ctx context.Context, projectKey string) error {
 
 func (s *ProjectService) Restore(ctx context.Context, projectKey string) error {
 	tflog.Debug(ctx, "restoring project", map[string]any{"key": projectKey})
-	resp, err := s.Client.doRequest(ctx, "DELETE", fmt.Sprintf("rest/api/2/project/%s/archive", url.PathEscape(projectKey)), nil)
+	resp, err := s.Client.doRequest(ctx, "PUT", fmt.Sprintf("rest/api/2/project/%s/restore", url.PathEscape(projectKey)), nil)
 	if err != nil {
 		return err
 	}

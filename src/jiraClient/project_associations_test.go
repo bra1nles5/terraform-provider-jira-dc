@@ -174,3 +174,33 @@ func TestProjectService_AssignWorkflow_ErrorStatus(t *testing.T) {
 		t.Error("expected an error, got nil")
 	}
 }
+
+func TestProjectService_ArchiveRestore(t *testing.T) {
+	tests := []struct {
+		name   string
+		call   func(*JiraClient) error
+		path   string
+		status int
+	}{
+		{"archive", func(c *JiraClient) error { return c.Projects.Archive(context.Background(), "TEST") },
+			"/rest/api/2/project/TEST/archive", http.StatusNoContent},
+		{"restore", func(c *JiraClient) error { return c.Projects.Restore(context.Background(), "TEST") },
+			"/rest/api/2/project/TEST/restore", http.StatusAccepted},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPut || r.URL.Path != tt.path {
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
+				w.WriteHeader(tt.status)
+			}))
+			defer server.Close()
+
+			if err := tt.call(NewJiraClient(server.URL+"/", "user", "token")); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
