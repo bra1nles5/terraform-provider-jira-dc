@@ -138,7 +138,7 @@ func (s *ProjectService) GetPermissionSchema(ctx context.Context, projectKey str
 	return data.ID, nil
 }
 
-func (s *ProjectService) AssignIssueTypeShema(ctx context.Context, ProjectKey string, issueTypeSchemaID string) error {
+func (s *ProjectService) AssignIssueTypeSchema(ctx context.Context, ProjectKey string, issueTypeSchemaID string) error {
 	tflog.Debug(ctx, "assigning issue type schema", map[string]any{"project_key": ProjectKey, "schema_id": issueTypeSchemaID})
 	body := IssueTypeAssociationRequest{
 		ProjectKeys: []string{ProjectKey},
@@ -150,7 +150,7 @@ func (s *ProjectService) AssignIssueTypeShema(ctx context.Context, ProjectKey st
 	return expectSuccess(resp, "assigning issue type scheme")
 }
 
-func (s *ProjectService) AssignPriorityShema(ctx context.Context, ProjectKey string, PrioritySchemaID string) error {
+func (s *ProjectService) AssignPrioritySchema(ctx context.Context, ProjectKey string, PrioritySchemaID string) error {
 	tflog.Debug(ctx, "assigning priority schema", map[string]any{"project_key": ProjectKey, "schema_id": PrioritySchemaID})
 	body := PrioritySchemeAssociationRequests{
 		ID: PrioritySchemaID,
@@ -171,7 +171,7 @@ func (s *ProjectService) UpdateProjectType(ctx context.Context, ProjectKey strin
 	return expectSuccess(resp, "updating project type")
 }
 
-func (s *ProjectService) AssignPermissionShema(ctx context.Context, prj *Project, NewPermissionSchema int32) error {
+func (s *ProjectService) AssignPermissionSchema(ctx context.Context, prj *Project, NewPermissionSchema int32) error {
 	tflog.Debug(ctx, "assigning permission schema", map[string]any{"project_key": prj.Key, "schema_id": NewPermissionSchema})
 	body := permissionSchemeAssignRequest{
 		PermissionScheme: NewPermissionSchema,

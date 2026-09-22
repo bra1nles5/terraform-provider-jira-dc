@@ -146,7 +146,7 @@ func TestProjectService_SchemaGetters_Forbidden(t *testing.T) {
 
 // Silently reporting success when Jira refuses is what made apply go green while
 // the project kept someone else's scheme.
-func TestProjectService_AssignIssueTypeShema_ErrorStatus(t *testing.T) {
+func TestProjectService_AssignIssueTypeSchema_ErrorStatus(t *testing.T) {
 	for _, status := range []int{http.StatusBadRequest, http.StatusForbidden, http.StatusInternalServerError} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(status)
@@ -154,7 +154,7 @@ func TestProjectService_AssignIssueTypeShema_ErrorStatus(t *testing.T) {
 		}))
 
 		client := NewJiraClient(server.URL+"/", "user", "token")
-		err := client.Projects.AssignIssueTypeShema(context.Background(), "EX", "10000")
+		err := client.Projects.AssignIssueTypeSchema(context.Background(), "EX", "10000")
 		if err == nil {
 			t.Errorf("status %d: expected an error, got nil", status)
 		}

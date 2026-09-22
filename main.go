@@ -19,9 +19,10 @@ func main() {
 	flag.Parse()
 
 	err := providerserver.Serve(context.Background(), func() provider.Provider {
-		return src.NewProvider()
+		return src.NewProvider(version)
 	}, providerserver.ServeOpts{
 		Address: "registry.terraform.io/bra1nles5/jira-dc",
+		Debug:   debug,
 	})
 	if err != nil {
 		log.Fatal(err)

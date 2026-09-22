@@ -74,9 +74,9 @@ resource "jira_project" "example" {
 | `description`          | string | no       | Project description                      |
 | `archived`             | bool   | no       | Whether the project is archived (computed if omitted) |
 | `issue_type_schema_id` | string | yes      | ID of the issue type scheme              |
-| `priority_schema_id`   | int    | yes      | ID of the priority scheme                |
+| `priority_schema_id`   | int    | no       | ID of the priority scheme (computed if omitted; null for an archived project) |
 | `workflow_schema_id`   | int    | yes      | ID of the workflow scheme                |
-| `permission_schema_id` | int    | yes      | ID of the permission scheme              |
+| `permission_schema_id` | int    | no       | ID of the permission scheme (computed if omitted; null for an archived project) |
 
 ---
 

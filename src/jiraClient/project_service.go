@@ -9,16 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-func (s *ProjectService) GetProjectByKey(ctx context.Context) error {
-	resp, err := s.Client.doRequest(ctx, "GET", "rest/api/2/project", nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
-	return nil
-}
-
 func (s *ProjectService) Create(ctx context.Context, project Project) (*Project, error) {
 	body := CreateProjectData{
 		Key:              project.Key,

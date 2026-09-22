@@ -20,14 +20,17 @@ type jiraProviderModel struct {
 	Token    types.String `tfsdk:"token"`
 }
 
-type JiraDataCenterProvider struct{}
+type JiraDataCenterProvider struct {
+	version string
+}
 
-func NewProvider() provider.Provider {
-	return &JiraDataCenterProvider{}
+func NewProvider(version string) provider.Provider {
+	return &JiraDataCenterProvider{version: version}
 }
 
 func (p *JiraDataCenterProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "jira"
+	resp.Version = p.version
 }
 
 func (p *JiraDataCenterProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {

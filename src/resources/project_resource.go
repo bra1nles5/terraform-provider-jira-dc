@@ -170,7 +170,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	// assigning a scheme fails with 400 "You must have the view project permission".
 	// The same call succeeds a few seconds later, so the first assignments are retried.
 	err = retryAfterCreate(ctx, "assign issue type schema", func() error {
-		return r.projectService.AssignIssueTypeShema(ctx, prj.Key, plan.IssueTypeSchemaId.ValueString())
+		return r.projectService.AssignIssueTypeSchema(ctx, prj.Key, plan.IssueTypeSchemaId.ValueString())
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error assigning issue type schema", err.Error())
@@ -178,7 +178,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	if isSet(plan.PrioritySchemaId) {
-		err = r.projectService.AssignPriorityShema(ctx, prj.Key, fmt.Sprintf("%d", plan.PrioritySchemaId.ValueInt32()))
+		err = r.projectService.AssignPrioritySchema(ctx, prj.Key, fmt.Sprintf("%d", plan.PrioritySchemaId.ValueInt32()))
 		if err != nil {
 			resp.Diagnostics.AddError("Error assigning priority schema", err.Error())
 			return
@@ -186,7 +186,7 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	if isSet(plan.PermissionSchemaId) {
-		err = r.projectService.AssignPermissionShema(ctx, &prj, plan.PermissionSchemaId.ValueInt32())
+		err = r.projectService.AssignPermissionSchema(ctx, &prj, plan.PermissionSchemaId.ValueInt32())
 		if err != nil {
 			resp.Diagnostics.AddError("Error assigning permission schema", err.Error())
 			return
@@ -259,7 +259,7 @@ func (r *ProjectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if err != nil {
 			resp.Diagnostics.AddError("Error reading project", err.Error())
 		} else {
-			resp.Diagnostics.AddError("Error reading project", "prj is nill")
+			resp.Diagnostics.AddError("Error reading project", "Jira returned no project")
 		}
 		return
 	}
@@ -357,7 +357,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if diff.IssueTypeChanged() {
-		if err := r.projectService.AssignIssueTypeShema(ctx, prj.Key, plan.IssueTypeSchemaId.ValueString()); err != nil {
+		if err := r.projectService.AssignIssueTypeSchema(ctx, prj.Key, plan.IssueTypeSchemaId.ValueString()); err != nil {
 			resp.Diagnostics.AddError("Error updating issue type schema", err.Error())
 			return
 		}
@@ -365,7 +365,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if diff.PriorityChanged() && isSet(plan.PrioritySchemaId) {
-		if err := r.projectService.AssignPriorityShema(ctx, prj.Key, fmt.Sprintf("%d", plan.PrioritySchemaId.ValueInt32())); err != nil {
+		if err := r.projectService.AssignPrioritySchema(ctx, prj.Key, fmt.Sprintf("%d", plan.PrioritySchemaId.ValueInt32())); err != nil {
 			resp.Diagnostics.AddError("Error updating priority schema", err.Error())
 			return
 		}
@@ -373,7 +373,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if diff.PermissionChanged() && isSet(plan.PermissionSchemaId) {
-		if err := r.projectService.AssignPermissionShema(ctx, &prj, plan.PermissionSchemaId.ValueInt32()); err != nil {
+		if err := r.projectService.AssignPermissionSchema(ctx, &prj, plan.PermissionSchemaId.ValueInt32()); err != nil {
 			resp.Diagnostics.AddError("Error updating permission schema", err.Error())
 			return
 		}
@@ -449,7 +449,7 @@ func (r *ProjectResource) reconcileSchemas(ctx context.Context, plan ProjectReso
 	if issueType != plan.IssueTypeSchemaId.ValueString() {
 		tflog.Warn(ctx, "issue type schema was overwritten by the project template, reassigning",
 			map[string]any{"key": key, "got": issueType, "want": plan.IssueTypeSchemaId.ValueString()})
-		if err := r.projectService.AssignIssueTypeShema(ctx, key, plan.IssueTypeSchemaId.ValueString()); err != nil {
+		if err := r.projectService.AssignIssueTypeSchema(ctx, key, plan.IssueTypeSchemaId.ValueString()); err != nil {
 			return err
 		}
 		if issueType, err = r.projectService.GetIssueTypeSchema(ctx, key); err != nil {
