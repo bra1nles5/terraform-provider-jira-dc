@@ -11,6 +11,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `PUT /rest/api/2/project/{key}/restore` instead of `DELETE .../archive`, which
   Jira Data Center answers with 405. Setting `archived = false` on an archived
   project used to fail.
+- `getIssueTypeScheme` ScriptRunner endpoint lists the issue types of the
+  project's scheme; it returned `[null]` for a global scheme. Redeploy the script.
 
 ### Changed
 

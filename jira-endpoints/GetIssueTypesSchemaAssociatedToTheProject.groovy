@@ -39,8 +39,9 @@ getIssueTypeScheme(
     // Correct way to obtain the default issue type
     IssueType defaultIssueType = schemeManager.getDefaultIssueType(project)
 
-    // Issue types in the scheme (collection)
-    def issueTypes = scheme.getAssociatedIssueTypes()*.name ?: []
+    // Issue types available in the project. getAssociatedIssueTypes() is the field
+    // context, not the scheme contents, and for a global scheme it is [null].
+    def issueTypes = schemeManager.getIssueTypesForProject(project)*.name ?: []
 
     def response = [
         projectKey          : projectKey,
