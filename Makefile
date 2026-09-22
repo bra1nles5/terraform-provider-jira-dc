@@ -1,5 +1,5 @@
 PLUGIN_NAME=jira-dc
-PLUGIN_VERSION=0.1.2
+PLUGIN_VERSION=0.1.3
 PLUGIN_NAMESPACE=bra1nles5
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
