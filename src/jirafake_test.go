@@ -64,6 +64,10 @@ type fakeJira struct {
 	refuseDelete       bool              // DELETE answers 403
 	leadSpelling       map[string]string // how Jira spells a lead it is given
 
+	// failOn picks requests to answer with 400, whatever they are. It runs under the
+	// fake's lock and may look at f.projects directly.
+	failOn func(f *fakeJira, r *http.Request) bool
+
 	lastUser string // Basic Auth user of the latest request
 }
 
@@ -134,6 +138,10 @@ func (f *fakeJira) serve(w http.ResponseWriter, r *http.Request) {
 	f.lastUser, _, _ = r.BasicAuth()
 	if r.Method != http.MethodGet {
 		f.writes = append(f.writes, r.Method+" "+r.URL.Path)
+	}
+	if f.failOn != nil && f.failOn(f, r) {
+		http.Error(w, `{"errorMessages":["Injected failure."],"errors":{}}`, http.StatusBadRequest)
+		return
 	}
 
 	path := strings.TrimPrefix(r.URL.Path, "/rest/")
