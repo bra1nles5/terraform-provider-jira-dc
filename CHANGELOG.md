@@ -5,6 +5,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Unreleased
 
+### Fixed
+
+- Archived projects can be imported and managed. Jira hides their workflow,
+  priority and permission schemes, so after an import those were empty in state,
+  every plan wanted to add them, and apply failed with 403 halfway, having already
+  changed the issue type scheme. Now, while a project stays archived:
+  - a hidden scheme that state knows nothing about takes the configured value
+    without calling Jira, with a warning;
+  - any change Jira refuses (name, description, lead, type, a known hidden
+    scheme) fails before the first call, so the project is never left half-changed;
+  - the issue type scheme can still change, as Jira accepts it.
+- Restoring a project reads its schemes back from Jira first, so values recorded
+  unchecked while it was archived are compared and fixed in the same apply.
+
+### Changed
+
+- `workflow_schema_id` is optional, like `priority_schema_id` and
+  `permission_schema_id`. Left unset, the project keeps the scheme Jira gave it.
+  Configurations generated with `-generate-config-out` for an archived project
+  no longer fail with "Missing Configuration for Required Attribute".
+
 ### Security
 
 - Release binaries are built with Go 1.27.2 instead of 1.24.0, which no longer

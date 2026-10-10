@@ -3,12 +3,12 @@
 page_title: "jira_project Resource - Jira Data Center"
 subcategory: ""
 description: |-
-  Manages a Jira Data Center project together with the schemes it is built from: issue types, workflow, priorities and permissions.
+  Manages a Jira Data Center project together with the schemes it is built from: issue types, workflow, priorities and permissions. An archived project is read-only for Jira and hides its workflow, priority and permission schemes: while it stays archived, only the issue type scheme can change, and hidden schemes that state knows nothing about (as after an import) take the configured value without being checked. Restore the project with archived = false to change anything else.
 ---
 
 # jira_project (Resource)
 
-Manages a Jira Data Center project together with the schemes it is built from: issue types, workflow, priorities and permissions.
+Manages a Jira Data Center project together with the schemes it is built from: issue types, workflow, priorities and permissions. An archived project is read-only for Jira and hides its workflow, priority and permission schemes: while it stays archived, only the issue type scheme can change, and hidden schemes that state knows nothing about (as after an import) take the configured value without being checked. Restore the project with `archived = false` to change anything else.
 
 ## Example Usage
 
@@ -54,7 +54,6 @@ resource "jira_project" "example" {
 - `lead` (String) Username of the project lead.
 - `name` (String) Project display name.
 - `type` (String) Project type: `software`, `business` or `service_desk`.
-- `workflow_schema_id` (Number) ID of the workflow scheme to associate with the project. Assigning it goes through the `assignWorkflowScheme` ScriptRunner endpoint; on a project that already has issues Jira migrates them, which may take a while.
 
 ### Optional
 
@@ -62,6 +61,7 @@ resource "jira_project" "example" {
 - `description` (String) Project description. Left unset it stays empty in Jira.
 - `permission_schema_id` (Number) ID of the permission scheme. Sent already when the project is created: without it not even an administrator can see the new project. An archived project does not report it, and the value is then null.
 - `priority_schema_id` (Number) ID of the priority scheme. Optional because an archived project refuses to report it: in that case the value is null rather than a guess.
+- `workflow_schema_id` (Number) ID of the workflow scheme to associate with the project. Assigning it goes through the `assignWorkflowScheme` ScriptRunner endpoint; on a project that already has issues Jira migrates them, which may take a while. Left unset, the project keeps the scheme Jira gave it. An archived project does not report it, and the value is then null.
 
 ## Import
 
