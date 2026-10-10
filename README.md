@@ -16,7 +16,7 @@ Jira Cloud is not supported.
   (the ScriptRunner endpoints are restricted to `jira-administrators`)
 - [ScriptRunner for Jira](https://scriptrunner.adaptavist.com/) with the endpoints from
   [`jira-endpoints/`](jira-endpoints) deployed — see the [ScriptRunner setup](docs/guides/scriptrunner-setup.md) guide
-- Go ≥ 1.24, only to build from source
+- Go ≥ 1.27, only to build from source
 
 ## Quick start
 
