@@ -19,6 +19,17 @@ type fakeProject struct {
 	WorkflowScheme                     int32
 	PriorityScheme                     int32
 	PermissionScheme                   int32
+
+	templatePending bool // the template has not overwritten the schemes yet
+	lagLeft         int  // issue type assignments still refused as "too early"
+}
+
+// fakeScheme is a scheme as the listing endpoints return it.
+type fakeScheme struct {
+	ID          int32
+	Name        string
+	Description string
+	OptionIDs   []string // priority schemes only
 }
 
 // Schemes a new project gets from the project template unless told otherwise.
@@ -27,6 +38,10 @@ const (
 	defaultWorkflowScheme   = 10100
 	defaultPriorityScheme   = 10200
 	defaultPermissionScheme = 10300
+
+	// What the project template puts in place when it overwrites assigned schemes.
+	templateIssueTypeScheme = "19000"
+	templateWorkflowScheme  = 19100
 )
 
 // fakeJira is an in-memory Jira Data Center that serves the endpoints the provider
@@ -40,6 +55,16 @@ type fakeJira struct {
 	projects map[string]*fakeProject
 	writes   []string // "METHOD path" of every request that tried to change something
 	server   *httptest.Server
+
+	issueTypeSchemes, prioritySchemes, workflowSchemes, permissionSchemes []fakeScheme
+
+	// Behaviour seen on live instances, off unless a test turns it on.
+	templateOverwrites bool              // the template replaces assigned schemes after create
+	createLag          int               // issue type assignments refused right after create
+	refuseDelete       bool              // DELETE answers 403
+	leadSpelling       map[string]string // how Jira spells a lead it is given
+
+	lastUser string // Basic Auth user of the latest request
 }
 
 func newFakeJira(t *testing.T) *fakeJira {
@@ -51,6 +76,19 @@ func newFakeJira(t *testing.T) *fakeJira {
 }
 
 func (f *fakeJira) URL() string { return f.server.URL + "/" }
+
+// set changes the fake's behaviour or data between test steps.
+func (f *fakeJira) set(change func(f *fakeJira)) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	change(f)
+}
+
+func (f *fakeJira) user() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.lastUser
+}
 
 // put stores a project as if it already existed in Jira.
 func (f *fakeJira) put(p fakeProject) {
@@ -93,6 +131,7 @@ func (f *fakeJira) serve(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	f.lastUser, _, _ = r.BasicAuth()
 	if r.Method != http.MethodGet {
 		f.writes = append(f.writes, r.Method+" "+r.URL.Path)
 	}
@@ -112,7 +151,30 @@ func (f *fakeJira) serve(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"project not found"}`, http.StatusNotFound)
 			return
 		}
+		if p.templatePending {
+			// Jira finishes applying the template after answering POST /project and
+			// quietly replaces what was assigned in the meantime.
+			p.templatePending = false
+			p.IssueTypeScheme, p.WorkflowScheme = templateIssueTypeScheme, templateWorkflowScheme
+		}
 		writeJSON(w, http.StatusOK, map[string]any{"projectKey": p.Key, "schemeId": p.IssueTypeScheme})
+	case r.Method == http.MethodGet && path == "api/2/issuetypescheme":
+		writeJSON(w, http.StatusOK, map[string]any{"schemes": f.listing(f.issueTypeSchemes, "issuetypescheme", true)})
+	case r.Method == http.MethodGet && path == "api/2/priorityschemes":
+		writeJSON(w, http.StatusOK, map[string]any{"schemes": f.listing(f.prioritySchemes, "priorityschemes", false)})
+	case r.Method == http.MethodGet && path == "api/2/permissionscheme":
+		writeJSON(w, http.StatusOK, map[string]any{"permissionSchemes": f.listing(f.permissionSchemes, "permissionscheme", false)})
+	case r.Method == http.MethodGet && path == "scriptrunner/latest/custom/listWorkflowSchemes":
+		writeJSON(w, http.StatusOK, map[string]any{"schemes": f.listing(f.workflowSchemes, "workflowscheme", false)})
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "api/2/workflowscheme/"):
+		id := strings.TrimPrefix(path, "api/2/workflowscheme/")
+		for _, s := range f.listing(f.workflowSchemes, "workflowscheme", false) {
+			if fmt.Sprint(s["id"]) == id {
+				writeJSON(w, http.StatusOK, s)
+				return
+			}
+		}
+		http.Error(w, `{"errorMessages":["The workflow scheme does not exist."]}`, http.StatusNotFound)
 	case r.Method == http.MethodPut && path == "scriptrunner/latest/custom/assignWorkflowScheme":
 		f.assignWorkflowScheme(w, r)
 	default:
@@ -149,7 +211,7 @@ func (f *fakeJira) serveProject(w http.ResponseWriter, r *http.Request, parts []
 			case "description":
 				p.Description = value.(string)
 			case "lead":
-				p.Lead = value.(string)
+				p.Lead = f.spell(value.(string))
 			case "projectTypeKey":
 				p.Type = value.(string)
 			case "permissionScheme":
@@ -158,6 +220,10 @@ func (f *fakeJira) serveProject(w http.ResponseWriter, r *http.Request, parts []
 		}
 		w.WriteHeader(http.StatusOK)
 	case len(parts) == 1 && r.Method == http.MethodDelete:
+		if f.refuseDelete {
+			http.Error(w, `{"errorMessages":["You do not have permission to delete projects."]}`, http.StatusForbidden)
+			return
+		}
 		delete(f.projects, p.Key)
 		w.WriteHeader(http.StatusNoContent)
 	case len(parts) == 2 && r.Method == http.MethodPut && parts[1] == "archive":
@@ -220,9 +286,10 @@ func (f *fakeJira) createProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := &fakeProject{
-		Key: body.Key, Name: body.Name, Description: body.Description, Type: body.ProjectTypeKey, Lead: body.Lead,
+		Key: body.Key, Name: body.Name, Description: body.Description, Type: body.ProjectTypeKey, Lead: f.spell(body.Lead),
 		IssueTypeScheme: defaultIssueTypeScheme, WorkflowScheme: defaultWorkflowScheme,
 		PriorityScheme: defaultPriorityScheme, PermissionScheme: defaultPermissionScheme,
+		templatePending: f.templateOverwrites, lagLeft: f.createLag,
 	}
 	if body.PermissionScheme != 0 {
 		p.PermissionScheme = body.PermissionScheme
@@ -242,6 +309,11 @@ func (f *fakeJira) associateIssueTypeScheme(w http.ResponseWriter, r *http.Reque
 		p := f.projects[key]
 		if p == nil {
 			http.Error(w, `{"errorMessages":["No project could be found."]}`, http.StatusNotFound)
+			return
+		}
+		if p.lagLeft > 0 {
+			p.lagLeft--
+			http.Error(w, `{"errorMessages":["You must have the view project permission."]}`, http.StatusBadRequest)
 			return
 		}
 		p.IssueTypeScheme = schemeID // accepted even for an archived project
@@ -267,6 +339,34 @@ func (f *fakeJira) assignWorkflowScheme(w http.ResponseWriter, r *http.Request) 
 		p.WorkflowScheme = body.SchemeID
 		writeJSON(w, http.StatusOK, map[string]any{"success": true, "projectKey": p.Key, "schemeId": p.WorkflowScheme})
 	}
+}
+
+// spell returns a lead the way Jira reports it back.
+func (f *fakeJira) spell(lead string) string {
+	if s, ok := f.leadSpelling[lead]; ok {
+		return s
+	}
+	return lead
+}
+
+// listing renders schemes as the listing endpoints do. Issue type scheme IDs are
+// strings in Jira's answers; the others are numbers.
+func (f *fakeJira) listing(schemes []fakeScheme, kind string, stringID bool) []map[string]any {
+	out := make([]map[string]any, 0, len(schemes))
+	for _, s := range schemes {
+		m := map[string]any{
+			"self": fmt.Sprintf("%srest/api/2/%s/%d", f.URL(), kind, s.ID),
+			"id":   s.ID, "name": s.Name, "description": s.Description,
+		}
+		if stringID {
+			m["id"] = fmt.Sprint(s.ID)
+		}
+		if s.OptionIDs != nil {
+			m["optionIds"] = s.OptionIDs
+		}
+		out = append(out, m)
+	}
+	return out
 }
 
 func (f *fakeJira) decode(w http.ResponseWriter, r *http.Request, v any) bool {
