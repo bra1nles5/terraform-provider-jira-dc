@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Unreleased
 
+### Security
+
+- Release binaries are built with Go 1.27.2 instead of 1.24.0, which no longer
+  gets security fixes; `golang.org/x/net`, `golang.org/x/text` and
+  `google.golang.org/grpc` are updated past their known vulnerabilities.
+  `govulncheck` reports none.
+- Building from source now needs Go 1.27.
+
 ### Documentation
 
 - Registry pages show usage examples for the provider, `jira_project` and every
