@@ -1,0 +1,13 @@
+version: "2"
+
+linters:
+  # The standard set: errcheck, govet, ineffassign, staticcheck, unused.
+  default: standard
+  exclusions:
+    # Unchecked Close() on response bodies and similar cleanup calls is idiomatic.
+    presets:
+      - std-error-handling
+
+formatters:
+  enable:
+    - gofmt

@@ -17,7 +17,7 @@ func TestProjectService_GetIssueTypeSchema(t *testing.T) {
 			t.Fatalf("unexpected projectKey: %s", r.URL.Query().Get("projectKey"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"schemeId":   "10100",
 			"schemeName": "Default Issue Type Scheme",
 		})
@@ -40,7 +40,7 @@ func TestProjectService_GetWorkflowSchema(t *testing.T) {
 			t.Fatalf("unexpected URL path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"id":   int32(20200),
 			"name": "My Workflow Scheme",
 		})
@@ -63,7 +63,7 @@ func TestProjectService_GetPrioritySchema(t *testing.T) {
 			t.Fatalf("unexpected URL: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"id": int32(30300),
 		})
 	}))
@@ -85,7 +85,7 @@ func TestProjectService_GetPermissionSchema(t *testing.T) {
 			t.Fatalf("unexpected URL: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"id": int32(40400),
 		})
 	}))
@@ -106,7 +106,7 @@ func TestProjectService_GetPermissionSchema(t *testing.T) {
 func TestProjectService_GetIssueTypeSchema_NumericID(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"schemeId":   11755,
 			"schemeName": "ABAC: Scrum Issue Type Scheme",
 		})
@@ -128,7 +128,7 @@ func TestProjectService_GetIssueTypeSchema_NumericID(t *testing.T) {
 func TestProjectService_SchemaGetters_Forbidden(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte(`{"errorMessages":["You cannot view this project."],"errors":{}}`))
+		_, _ = w.Write([]byte(`{"errorMessages":["You cannot view this project."],"errors":{}}`))
 	}))
 	defer server.Close()
 
@@ -148,7 +148,7 @@ func TestProjectService_AssignIssueTypeSchema_ErrorStatus(t *testing.T) {
 	for _, status := range []int{http.StatusBadRequest, http.StatusForbidden, http.StatusInternalServerError} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(status)
-			w.Write([]byte(`{"errorMessages":["nope"]}`))
+			_, _ = w.Write([]byte(`{"errorMessages":["nope"]}`))
 		}))
 
 		client := NewJiraClient(server.URL+"/", "user", "token")
@@ -163,7 +163,7 @@ func TestProjectService_AssignIssueTypeSchema_ErrorStatus(t *testing.T) {
 func TestProjectService_AssignWorkflow_ErrorStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":"scheme not found"}`))
+		_, _ = w.Write([]byte(`{"error":"scheme not found"}`))
 	}))
 	defer server.Close()
 

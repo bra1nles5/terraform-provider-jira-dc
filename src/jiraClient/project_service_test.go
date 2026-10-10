@@ -14,7 +14,7 @@ func TestProjectService_Get(t *testing.T) {
 			t.Fatalf("unexpected URL: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"key":            "TEST",
 			"name":           "Test Project",
 			"description":    "A test project",
@@ -70,7 +70,7 @@ func TestProjectService_Create(t *testing.T) {
 			t.Fatalf("unexpected URL: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"key":  "NEW",
 			"name": "New Project",
 		})
@@ -136,7 +136,7 @@ func TestProjectService_Remove_ErrorStatus(t *testing.T) {
 	for _, status := range []int{http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(status)
-			w.Write([]byte(`{"errorMessages":["nope"]}`))
+			_, _ = w.Write([]byte(`{"errorMessages":["nope"]}`))
 		}))
 
 		client := NewJiraClient(server.URL+"/", "user", "token")

@@ -47,7 +47,7 @@ func (s *ProjectService) Update(ctx context.Context, project *Project) error {
 		return err
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("failed to update project: %d", resp.StatusCode)
