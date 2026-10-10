@@ -10,26 +10,55 @@ permissions:
 
 jobs:
   check:
-    name: fmt, vet, test
+    name: lint, test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
 
-      - name: gofmt
+      # gofmt and go vet run inside golangci-lint; see .golangci.yml.
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.14.0
+
+      - run: go test ./...
+
+  actionlint:
+    name: workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+
+  # The Registry publishes docs/ as it is at the release tag, so a forgotten
+  # `make docs` ships stale pages. Regenerate and fail on any difference.
+  docs:
+    name: docs are up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - run: make docs
+
+      - name: docs/ matches the schema
         run: |
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "These files are not gofmt-ed:"
-            echo "$unformatted"
+          if [ -n "$(git status --porcelain docs/)" ]; then
+            echo "docs/ is out of date: run 'make docs' and commit the result."
+            git status --porcelain docs/
+            git diff docs/
             exit 1
           fi
-
-      - run: go vet ./...
-      - run: go test ./...
 
   build:
     name: build ${{ matrix.goos }}/${{ matrix.goarch }}
@@ -44,8 +73,8 @@ jobs:
           - {goos: linux,   goarch: arm64}
           - {goos: windows, goarch: amd64}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true

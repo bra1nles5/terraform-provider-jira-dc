@@ -21,7 +21,7 @@ func TestIssueTypeSchemeService_GetAll(t *testing.T) {
 			t.Fatalf("unexpected URL: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(mockResponse)
+		_ = json.NewEncoder(w).Encode(mockResponse)
 	}))
 	defer server.Close()
 
@@ -56,16 +56,18 @@ func TestIssueTypeSchemeService_GetAll_CachesResult(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(mockResponse)
+		_ = json.NewEncoder(w).Encode(mockResponse)
 	}))
 	defer server.Close()
 
 	client := NewJiraClient(server.URL+"/", "user", "token")
 	ctx := context.Background()
 
-	client.IssueTypes.GetAll(ctx)
-	client.IssueTypes.GetAll(ctx)
-	client.IssueTypes.GetAll(ctx)
+	for i := range 3 {
+		if _, err := client.IssueTypes.GetAll(ctx); err != nil {
+			t.Fatalf("call %d: unexpected error: %v", i+1, err)
+		}
+	}
 
 	if callCount != 1 {
 		t.Errorf("expected 1 HTTP call due to caching, got %d", callCount)
@@ -83,16 +85,20 @@ func TestIssueTypeSchemeService_ClearCache(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(mockResponse)
+		_ = json.NewEncoder(w).Encode(mockResponse)
 	}))
 	defer server.Close()
 
 	client := NewJiraClient(server.URL+"/", "user", "token")
 	ctx := context.Background()
 
-	client.IssueTypes.GetAll(ctx)
+	if _, err := client.IssueTypes.GetAll(ctx); err != nil {
+		t.Fatalf("first call: unexpected error: %v", err)
+	}
 	client.IssueTypes.ClearCache()
-	client.IssueTypes.GetAll(ctx)
+	if _, err := client.IssueTypes.GetAll(ctx); err != nil {
+		t.Fatalf("call after ClearCache: unexpected error: %v", err)
+	}
 
 	if callCount != 2 {
 		t.Errorf("expected 2 HTTP calls after ClearCache, got %d", callCount)
@@ -107,7 +113,7 @@ func TestWorkflowTypeSchemeService_GetAll(t *testing.T) {
 		}
 		calls++
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"schemes": []map[string]any{
 				{"id": 14003, "name": "PRJ: Workflow Scheme"},
 				{"id": 10501, "name": "Default Workflow Scheme"},

@@ -7,6 +7,7 @@ GOARCH?=$(shell go env GOARCH)
 PLUGIN_PATH=$(HOME)/.terraform.d/plugins/registry.terraform.io/$(PLUGIN_NAMESPACE)/$(PLUGIN_NAME)/$(PLUGIN_VERSION)/$(GOOS)_$(GOARCH)
 BINARY_NAME=terraform-provider-$(PLUGIN_NAME)_v$(PLUGIN_VERSION)
 TFPLUGINDOCS_VERSION=v0.25.0
+GOLANGCI_LINT_VERSION=v2.14.0
 
 ## Developer-local targets, if present (not part of the repository)
 -include local.mk
@@ -38,8 +39,8 @@ fmt:
 	go fmt ./...
 
 lint:
-	@echo "🔍 Running go vet..."
-	go vet ./...
+	@echo "🔍 Running golangci-lint..."
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run ./...
 
 ## Unit tests
 unit:

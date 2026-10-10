@@ -101,7 +101,7 @@ func (c *JiraClient) doRequest(ctx context.Context, method, path string, body an
 				"status":   resp.StatusCode,
 				"delay_ms": delay.Milliseconds(),
 			})
-			io.Copy(io.Discard, resp.Body)
+			_, _ = io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()
 			select {
 			case <-time.After(delay):
