@@ -1,6 +1,7 @@
 # Terraform Provider — Jira Data Center
 
 [![CI](https://github.com/bra1nles5/terraform-provider-jira-dc/actions/workflows/ci.yml/badge.svg)](https://github.com/bra1nles5/terraform-provider-jira-dc/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbra1nles5%2Fterraform-provider-jira-dc%2Fbadges%2Fcoverage.json)](https://github.com/bra1nles5/terraform-provider-jira-dc/actions/workflows/ci.yml?query=branch%3Amain)
 [![Release](https://img.shields.io/github/v/release/bra1nles5/terraform-provider-jira-dc)](https://github.com/bra1nles5/terraform-provider-jira-dc/releases/latest)
 [![Terraform Registry](https://img.shields.io/badge/registry-bra1nles5%2Fjira--dc-7B42BC?logo=terraform)](https://registry.terraform.io/providers/bra1nles5/jira-dc/latest)
 [![License](https://img.shields.io/github/license/bra1nles5/terraform-provider-jira-dc)](LICENSE)
