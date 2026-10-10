@@ -12,6 +12,8 @@ jobs:
   check:
     name: lint, test
     runs-on: ubuntu-latest
+    outputs:
+      coverage: ${{ steps.test.outputs.coverage }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -24,7 +26,55 @@ jobs:
         with:
           version: v2.14.0
 
-      - run: go test ./...
+      # Coverage of ./src/... merged across test packages: a block counts as covered
+      # when any package's tests ran it (the resource is tested from package src).
+      - name: go test with coverage
+        id: test
+        run: |
+          mkdir -p "$RUNNER_TEMP/cover"
+          go test -cover -coverpkg=./src/... ./... -args -test.gocoverdir="$RUNNER_TEMP/cover"
+          go tool covdata textfmt -i="$RUNNER_TEMP/cover" -o "$RUNNER_TEMP/cover.out"
+          total=$(go tool cover -func="$RUNNER_TEMP/cover.out" | awk '/^total:/ {print $3}')
+          echo "coverage=${total%\%}" >> "$GITHUB_OUTPUT"
+          echo "Test coverage: **$total**" >> "$GITHUB_STEP_SUMMARY"
+
+  # Publishes the coverage of main for the README badge. It writes to the separate
+  # badges branch, so main and its protection stay untouched.
+  coverage-badge:
+    name: coverage badge
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Update coverage.json on the badges branch
+        env:
+          COVERAGE: ${{ needs.check.outputs.coverage }}
+        run: |
+          color=red
+          if awk "BEGIN { exit !($COVERAGE >= 80) }"; then color=brightgreen
+          elif awk "BEGIN { exit !($COVERAGE >= 60) }"; then color=yellow
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth=1 origin badges; then
+            git checkout -B badges FETCH_HEAD
+          else
+            git checkout --orphan badges
+            git rm -rf --quiet --ignore-unmatch .
+          fi
+
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s%%","color":"%s"}\n' "$COVERAGE" "$color" > coverage.json
+          git add coverage.json
+          if git diff --cached --quiet; then
+            echo "Coverage unchanged at $COVERAGE%"
+            exit 0
+          fi
+          git commit --quiet -m "Coverage $COVERAGE%"
+          git push origin badges
 
   actionlint:
     name: workflows
