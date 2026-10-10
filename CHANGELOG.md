@@ -3,6 +3,17 @@
 All notable changes to this provider are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Documentation
+
+- Registry pages show usage examples for the provider, `jira_project` and every
+  data source, how to import a project, and a provider description.
+- New "ScriptRunner setup" guide in the Registry: which endpoints the provider
+  needs, how to deploy them and what they answer.
+- README is now an overview with a quick start; the argument reference and the
+  ScriptRunner endpoint reference live only in `docs/`, so the two cannot drift.
+
 ## v0.1.3
 
 ### Fixed

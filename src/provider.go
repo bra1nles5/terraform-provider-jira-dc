@@ -35,6 +35,10 @@ func (p *JiraDataCenterProvider) Metadata(_ context.Context, _ provider.Metadata
 
 func (p *JiraDataCenterProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = providerschema.Schema{
+		Description: "Manages Jira Data Center projects and looks up the schemes they are built from. " +
+			"It authenticates with Basic Auth against REST API v2 and, for the operations that API does " +
+			"not expose, against custom ScriptRunner endpoints that must be deployed on the Jira instance " +
+			"beforehand. Jira Cloud is not supported.",
 		Attributes: map[string]providerschema.Attribute{
 			"base_url": providerschema.StringAttribute{
 				Required:    true,
