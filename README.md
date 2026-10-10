@@ -91,7 +91,8 @@ make build
 #   cp main.tf.example main.tf
 make test
 
-# Run unit tests
+# Run tests. Resource tests drive real Terraform against a fake Jira: Terraform is
+# taken from PATH, or the latest release is downloaded.
 make unit
 
 # Format and lint
