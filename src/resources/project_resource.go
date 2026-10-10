@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	jira "github.com/bra1nles5/terraform-provider-jira-dc/src/jiraClient"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -64,7 +65,11 @@ func (r *ProjectResource) Configure(_ context.Context, req resource.ConfigureReq
 func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Manages a Jira Data Center project together with the schemes it is built from: " +
-			"issue types, workflow, priorities and permissions.",
+			"issue types, workflow, priorities and permissions. An archived project is read-only for " +
+			"Jira and hides its workflow, priority and permission schemes: while it stays archived, " +
+			"only the issue type scheme can change, and hidden schemes that state knows nothing about " +
+			"(as after an import) take the configured value without being checked. Restore the " +
+			"project with `archived = false` to change anything else.",
 		Attributes: map[string]schema.Attribute{
 			"key": schema.StringAttribute{
 				Required: true,
@@ -107,11 +112,18 @@ func (r *ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Description: "ID of the issue type scheme to associate with the project. " +
 					"It is a string because that is how Jira reports it for this scheme.",
 			},
+			// Optional rather than Required, like the two below: an archived project does
+			// not expose it, so a configuration generated for one has nothing to put here.
 			"workflow_schema_id": schema.Int32Attribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Description: "ID of the workflow scheme to associate with the project. Assigning it goes " +
 					"through the `assignWorkflowScheme` ScriptRunner endpoint; on a project that already " +
-					"has issues Jira migrates them, which may take a while.",
+					"has issues Jira migrates them, which may take a while. Left unset, the project keeps " +
+					"the scheme Jira gave it. An archived project does not report it, and the value is then null.",
+				PlanModifiers: []planmodifier.Int32{
+					int32planmodifier.UseStateForUnknown(),
+				},
 			},
 			// Optional rather than Required: an archived project does not expose these
 			// two, so a configuration describing one has nothing to put here.
@@ -193,10 +205,12 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	err = r.projectService.AssignWorkflow(ctx, prj.Key, plan.WorkflowSchemaId.ValueInt32(), true)
-	if err != nil {
-		resp.Diagnostics.AddError("Error assigning workflow", err.Error())
-		return
+	if isSet(plan.WorkflowSchemaId) {
+		err = r.projectService.AssignWorkflow(ctx, prj.Key, plan.WorkflowSchemaId.ValueInt32(), true)
+		if err != nil {
+			resp.Diagnostics.AddError("Error assigning workflow", err.Error())
+			return
+		}
 	}
 
 	// Schemes are checked before archiving: an archived project may hide them.
@@ -229,8 +243,11 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		plan.Description = types.StringValue(canonical.Description)
 	}
 
-	// Both are Computed, so state must not keep an unknown value. Read back what Jira
+	// These are Computed, so state must not keep an unknown value. Read back what Jira
 	// ended up with; an archived project hides them, and then null is the honest answer.
+	plan.WorkflowSchemaId = resolveSchemaID(ctx, plan.WorkflowSchemaId, func() (int32, error) {
+		return r.projectService.GetWorkflowSchema(ctx, prj.Key)
+	})
 	plan.PrioritySchemaId = resolveSchemaID(ctx, plan.PrioritySchemaId, func() (int32, error) {
 		return r.projectService.GetPrioritySchema(ctx, prj.Key)
 	})
@@ -345,6 +362,24 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, "starting project update", map[string]any{"key": prj.Key})
 
+	// Check everything before the first call: Jira takes some changes to an archived
+	// project and refuses others, and stopping halfway leaves it partly changed.
+	if diff.StaysArchived() {
+		if refused := diff.RefusedWhileArchived(); len(refused) > 0 {
+			resp.Diagnostics.AddError("Project is archived",
+				fmt.Sprintf("Jira does not accept changes to %s of the archived project %s, so nothing was changed. "+
+					"Restore it first with archived = false, or leave these attributes out of the plan with "+
+					"lifecycle { ignore_changes = [...] }.", strings.Join(refused, ", "), prj.Key))
+			return
+		}
+		if adopted := diff.AdoptedWhileArchived(); len(adopted) > 0 {
+			resp.Diagnostics.AddWarning("Schemes of an archived project recorded without checking",
+				fmt.Sprintf("Jira hides %s of the archived project %s. The configured values are stored in state "+
+					"as they are, without reading or changing anything in Jira, and are compared with Jira "+
+					"once the project is restored.", strings.Join(adopted, ", "), prj.Key))
+		}
+	}
+
 	// An archived project refuses changes, so restoring comes first and archiving last.
 	if diff.ArchivedChanged() && !plan.Archived.ValueBool() {
 		if err := r.projectService.Restore(ctx, prj.Key); err != nil {
@@ -352,6 +387,14 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 			return
 		}
 		tflog.Debug(ctx, "project restored", map[string]any{"key": prj.Key})
+
+		// Hidden schemes in state may have been recorded unchecked while the project
+		// was archived. Now that Jira shows them, compare the plan with what it has.
+		if err := r.readHiddenSchemes(ctx, &state); err != nil {
+			resp.Diagnostics.AddError("Error reading schemes of the restored project", err.Error())
+			return
+		}
+		diff = newProjectDiff(plan, state)
 	}
 
 	if diff.BaseChanged() {
@@ -378,7 +421,11 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		tflog.Debug(ctx, "project issue type schema updated", map[string]any{"key": prj.Key})
 	}
 
-	if diff.PriorityChanged() && isSet(plan.PrioritySchemaId) {
+	// While the project stays archived, the hidden schemes left to change after the
+	// checks above are the adopted ones, and those are only recorded.
+	hiddenWritable := !diff.StaysArchived()
+
+	if hiddenWritable && diff.PriorityChanged() && isSet(plan.PrioritySchemaId) {
 		if err := r.projectService.AssignPrioritySchema(ctx, prj.Key, fmt.Sprintf("%d", plan.PrioritySchemaId.ValueInt32())); err != nil {
 			resp.Diagnostics.AddError("Error updating priority schema", err.Error())
 			return
@@ -386,7 +433,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		tflog.Debug(ctx, "project priority schema updated", map[string]any{"key": prj.Key})
 	}
 
-	if diff.PermissionChanged() && isSet(plan.PermissionSchemaId) {
+	if hiddenWritable && diff.PermissionChanged() && isSet(plan.PermissionSchemaId) {
 		if err := r.projectService.AssignPermissionSchema(ctx, &prj, plan.PermissionSchemaId.ValueInt32()); err != nil {
 			resp.Diagnostics.AddError("Error updating permission schema", err.Error())
 			return
@@ -394,7 +441,7 @@ func (r *ProjectResource) Update(ctx context.Context, req resource.UpdateRequest
 		tflog.Debug(ctx, "project permission schema updated", map[string]any{"key": prj.Key})
 	}
 
-	if diff.WorkflowChanged() {
+	if hiddenWritable && diff.WorkflowChanged() && isSet(plan.WorkflowSchemaId) {
 		if err := r.projectService.AssignWorkflow(ctx, prj.Key, plan.WorkflowSchemaId.ValueInt32(), true); err != nil {
 			resp.Diagnostics.AddError("Error updating workflow", err.Error())
 			return
@@ -443,6 +490,29 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 }
 
+// readHiddenSchemes reads the schemes Jira hides while a project is archived.
+func (r *ProjectResource) readHiddenSchemes(ctx context.Context, m *ProjectResourceModel) error {
+	key := m.Key.ValueString()
+
+	workflow, err := r.projectService.GetWorkflowSchema(ctx, key)
+	if err != nil {
+		return fmt.Errorf("reading workflow schema: %w", err)
+	}
+	priority, err := r.projectService.GetPrioritySchema(ctx, key)
+	if err != nil {
+		return fmt.Errorf("reading priority schema: %w", err)
+	}
+	permission, err := r.projectService.GetPermissionSchema(ctx, key)
+	if err != nil {
+		return fmt.Errorf("reading permission schema: %w", err)
+	}
+
+	m.WorkflowSchemaId = types.Int32Value(workflow)
+	m.PrioritySchemaId = types.Int32Value(priority)
+	m.PermissionSchemaId = types.Int32Value(permission)
+	return nil
+}
+
 // reconcileSchemas verifies that Jira kept what was assigned.
 //
 // Jira finishes applying the project template after it answers POST /project and
@@ -471,6 +541,9 @@ func (r *ProjectResource) reconcileSchemas(ctx context.Context, plan ProjectReso
 		}
 	}
 
+	if !isSet(plan.WorkflowSchemaId) {
+		return nil
+	}
 	workflow, err := r.projectService.GetWorkflowSchema(ctx, key)
 	if err != nil {
 		return fmt.Errorf("reading workflow schema back: %w", err)

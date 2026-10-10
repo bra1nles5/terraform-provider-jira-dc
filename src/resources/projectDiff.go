@@ -89,6 +89,64 @@ func (d *projectDiff) BaseChanged() bool {
 	return d.NameChanged() || d.DescriptionChanged() || d.LeadChanged()
 }
 
+// StaysArchived reports whether the project is archived before and after the update.
+// Jira refuses most changes to such a project and hides some of its schemes.
+func (d *projectDiff) StaysArchived() bool {
+	return d.state.Archived.ValueBool() && d.plan.Archived.ValueBool()
+}
+
+type hiddenScheme struct {
+	name        string
+	plan, state types.Int32
+}
+
+// hiddenSchemes are the schemes Jira answers 403 for while a project is archived.
+func (d *projectDiff) hiddenSchemes() []hiddenScheme {
+	return []hiddenScheme{
+		{"workflow_schema_id", d.plan.WorkflowSchemaId, d.state.WorkflowSchemaId},
+		{"priority_schema_id", d.plan.PrioritySchemaId, d.state.PrioritySchemaId},
+		{"permission_schema_id", d.plan.PermissionSchemaId, d.state.PermissionSchemaId},
+	}
+}
+
+// AdoptedWhileArchived lists the hidden schemes of an archived project that state
+// knows nothing about (as after an import) and the plan sets. Jira can neither show
+// nor change them, so the configured value is recorded as it is.
+func (d *projectDiff) AdoptedWhileArchived() []string {
+	var names []string
+	for _, s := range d.hiddenSchemes() {
+		if s.state.IsNull() && isSet(s.plan) {
+			names = append(names, s.name)
+		}
+	}
+	return names
+}
+
+// RefusedWhileArchived lists the changes Jira does not accept for an archived
+// project. The issue type scheme is not among them: Jira assigns it regardless.
+func (d *projectDiff) RefusedWhileArchived() []string {
+	var names []string
+	for _, c := range []struct {
+		name    string
+		changed bool
+	}{
+		{"name", d.NameChanged()},
+		{"description", d.DescriptionChanged()},
+		{"lead", d.LeadChanged()},
+		{"type", d.TypeChanged()},
+	} {
+		if c.changed {
+			names = append(names, c.name)
+		}
+	}
+	for _, s := range d.hiddenSchemes() {
+		if !s.state.IsNull() && !s.plan.Equal(s.state) {
+			names = append(names, s.name)
+		}
+	}
+	return names
+}
+
 // retryAfterCreate repeats an operation that may fail right after the project is
 // created: Jira finishes creating it asynchronously, and for the first seconds
 // permission checks against it do not pass. Five attempts, 2 seconds apart.
