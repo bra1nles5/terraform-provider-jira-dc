@@ -18,6 +18,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - the issue type scheme can still change, as Jira accepts it.
 - Restoring a project reads its schemes back from Jira first, so values recorded
   unchecked while it was archived are compared and fixed in the same apply.
+- A project whose creation failed after Jira had already created it (for example,
+  a scheme assignment answered 400) stays in state as tainted and is replaced on
+  the next apply. It used to be forgotten while staying in Jira, and every later
+  apply failed with "A project with that project key already exists".
 
 ### Changed
 

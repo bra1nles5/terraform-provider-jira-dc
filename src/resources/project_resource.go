@@ -178,6 +178,16 @@ func (r *ProjectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	// From here on the project exists in Jira. If a later step fails, keep it in state
+	// anyway: Terraform marks it tainted and replaces it on the next apply. Without
+	// this it stays in Jira unknown to Terraform, and every later apply fails with
+	// "A project with that project key already exists".
+	defer func() {
+		if resp.Diagnostics.HasError() {
+			keepCreated(ctx, plan, resp)
+		}
+	}()
+
 	// Right after POST /project the permission check does not see the project yet:
 	// assigning a scheme fails with 400 "You must have the view project permission".
 	// The same call succeeds a few seconds later, so the first assignments are retried.
@@ -488,6 +498,20 @@ func (r *ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		resp.Diagnostics.AddError("Error removing project", err.Error())
 		return
 	}
+}
+
+// keepCreated stores a project that Jira created before a later step of Create
+// failed. Values still unknown become null; the project is replaced anyway.
+func keepCreated(ctx context.Context, plan ProjectResourceModel, resp *resource.CreateResponse) {
+	if plan.Archived.IsUnknown() {
+		plan.Archived = types.BoolNull()
+	}
+	for _, id := range []*types.Int32{&plan.WorkflowSchemaId, &plan.PrioritySchemaId, &plan.PermissionSchemaId} {
+		if id.IsUnknown() {
+			*id = types.Int32Null()
+		}
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 // readHiddenSchemes reads the schemes Jira hides while a project is archived.
